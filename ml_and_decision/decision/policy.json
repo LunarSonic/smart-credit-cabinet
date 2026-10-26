@@ -1,0 +1,24 @@
+{
+  "version": "demo-policy-1.0",
+  "disclaimer": "Fictitious educational credit policy. Interest rates and affordability coefficients are invented, not Alfa-Bank terms.",
+  "max_new_payment_fraction_of_free_cashflow": 0.60,
+  "amount_rounding_step_rub": 1000,
+  "high_risk_action": "manual_review",
+  "medium_risk_action": "proceed",
+  "products": {
+    "working_capital": {
+      "min_amount_rub": 50000,
+      "max_amount_rub": 500000,
+      "min_term_months": 3,
+      "max_term_months": 12,
+      "demo_annual_interest_rate": 0.18
+    },
+    "equipment": {
+      "min_amount_rub": 100000,
+      "max_amount_rub": 1000000,
+      "min_term_months": 6,
+      "max_term_months": 36,
+      "demo_annual_interest_rate": 0.20
+    }
+  }
+}

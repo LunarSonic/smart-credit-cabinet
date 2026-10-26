@@ -1,0 +1,28 @@
+security:
+  jwt:
+    secret: test-secret-key-for-unit-tests-only-32+
+    ttl-minutes: 60
+  cors:
+    allowed-origins: http://localhost:3000
+
+ml:
+  base-url: http://localhost:9999
+  connect-timeout-ms: 500
+  read-timeout-ms: 1000
+  retries: 0
+
+pipeline:
+  recovery-after-seconds: 3600
+  recovery-interval-ms: 3600000
+  disbursement-delay-ms: 100
+  offer-ttl-days: 1
+
+app:
+  seed:
+    enabled: false
+    demo-password: test
+
+logging:
+  level:
+    ru.backend: WARN
+    org.hibernate.SQL: WARN

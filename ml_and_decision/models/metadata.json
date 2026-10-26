@@ -1,0 +1,38 @@
+{
+  "model_version": "synthetic-credit-risk-v1",
+  "model_type": "CatBoostClassifier",
+  "origin": "fully_synthetic_simulation",
+  "target": "90+ days past due within 12 months of loan issue (synthetic)",
+  "feature_columns": [
+    "industry",
+    "product_type",
+    "company_age_months",
+    "avg_monthly_revenue_rub",
+    "mandatory_expense_ratio",
+    "existing_payment_ratio",
+    "free_cashflow_rub",
+    "has_active_loans",
+    "past_overdue_count",
+    "requested_amount_rub",
+    "term_months",
+    "requested_payment_principal_proxy_rub",
+    "payment_burden_ratio",
+    "loan_to_revenue_6m_ratio",
+    "affordability_coverage_proxy"
+  ],
+  "category_features": [
+    "industry",
+    "product_type"
+  ],
+  "risk_thresholds": {
+    "low_lt": 0.08,
+    "medium_lt": 0.18
+  },
+  "training_date_utc": "2026-10-25T23:19:36.391876+00:00",
+  "train_rows": 13277,
+  "validation_rows": 3399,
+  "test_rows": 3324,
+  "iterations_requested": 360,
+  "best_iteration": 68,
+  "warning": "Synthetic metrics only. NOT calibrated or validated on real banking data."
+}

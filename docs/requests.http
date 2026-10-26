@@ -1,0 +1,368 @@
+### Умный кредитный кабинет — коллекция запросов
+### Открывается в IntelliJ IDEA (HTTP Client) и VS Code (REST Client)
+
+@baseUrl = http://localhost:8080
+@mlUrl   = http://localhost:8001
+
+### ─────────────────────────────────────────
+### 1. АУТЕНТИФИКАЦИЯ
+### ─────────────────────────────────────────
+
+# Войти как клиент с хорошим профилем (ожидается APPROVED)
+# @name loginClient1
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "login": "client1",
+  "password": "Demo1234!"
+}
+
+###
+
+# Войти как клиент с просрочками в БКИ (ожидается MANUAL_REVIEW)
+# @name loginClient4
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "login": "client4",
+  "password": "Demo1234!"
+}
+
+###
+
+# Войти как клиент со стоп-фактором ЕГРЮЛ (ожидается REJECTED)
+# @name loginClient3
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "login": "client3",
+  "password": "Demo1234!"
+}
+
+###
+
+# Войти как сотрудник банка
+# @name loginEmployee
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "login": "employee",
+  "password": "Demo1234!"
+}
+
+###
+
+### ─────────────────────────────────────────
+### 2. ПРОДУКТЫ И РЕКОМЕНДАЦИИ
+### ─────────────────────────────────────────
+
+# Список всех кредитных продуктов
+GET {{baseUrl}}/api/products
+Authorization: Bearer {{clientToken}}
+
+###
+
+# Подобрать продукт по параметрам
+POST {{baseUrl}}/api/recommendations
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "amount": 180000,
+  "termMonths": 12,
+  "purpose": "WORKING_CAPITAL"
+}
+
+###
+
+# Предодобренные предложения для клиента
+GET {{baseUrl}}/api/offers/preapproved
+Authorization: Bearer {{clientToken}}
+
+###
+
+### ─────────────────────────────────────────
+### 3. ЗАЯВКИ — КЛИЕНТ
+### ─────────────────────────────────────────
+
+# Создать заявку (DRAFT) — Сценарий 1: Петрова, автоодобрение
+# Подставьте productId из GET /api/products
+# @name createApplication
+POST {{baseUrl}}/api/applications
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "productId": "{{productId}}",
+  "amount": 180000,
+  "termMonths": 12,
+  "purpose": "WORKING_CAPITAL"
+}
+
+###
+
+# Заполнить черновик (version увеличивается на 1 после каждого PUT)
+# revenue6m = сумма оборотов по счёту за 6 мес (~247 500 ₽/мес для Петровой)
+# monthlyExpenses < monthly_revenue — иначе свободный денежный поток = 0 → REJECTED
+PUT {{baseUrl}}/api/applications/{{applicationId}}
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "fullName": "Петрова Виктория Андреевна",
+  "phone": "+79001000001",
+  "revenue6m": 1485000,
+  "monthlyExpenses": 100000,
+  "version": 0
+}
+
+###
+
+# Подать заявку (DRAFT → SUBMITTED → pipeline)
+POST {{baseUrl}}/api/applications/{{applicationId}}/submit
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "bkiConsent": true,
+  "personalDataConsent": true,
+  "version": 1
+}
+
+###
+
+# Получить статус заявки (polling после submit, ~2-5 сек)
+GET {{baseUrl}}/api/applications/{{applicationId}}
+Authorization: Bearer {{clientToken}}
+
+###
+
+# Список всех заявок клиента
+GET {{baseUrl}}/api/applications?page=0&size=10
+Authorization: Bearer {{clientToken}}
+
+###
+
+# Отозвать заявку (только в статусе DRAFT или NEEDS_INFO)
+POST {{baseUrl}}/api/applications/{{applicationId}}/cancel
+Authorization: Bearer {{clientToken}}
+
+###
+
+### ─────────────────────────────────────────
+### 4. ОФЕРТЫ — КЛИЕНТ
+### ─────────────────────────────────────────
+
+# Принять оферту (статус → SIGNED, через 5 сек → DISBURSED)
+# offerId берётся из GET /api/applications/{id} поле offer.id
+POST {{baseUrl}}/api/offers/{{offerId}}/accept
+Authorization: Bearer {{clientToken}}
+
+###
+
+# Отклонить оферту (статус → OFFER_DECLINED)
+POST {{baseUrl}}/api/offers/{{offerId}}/decline
+Authorization: Bearer {{clientToken}}
+
+###
+
+### ─────────────────────────────────────────
+### 5. ДОГОВОРЫ — КЛИЕНТ
+### ─────────────────────────────────────────
+
+# Мои договоры (появляются после DISBURSED)
+GET {{baseUrl}}/api/contracts
+Authorization: Bearer {{clientToken}}
+
+###
+
+### ─────────────────────────────────────────
+### 6. БАНК — СОТРУДНИК (роль EMPLOYEE)
+### ─────────────────────────────────────────
+
+# Очередь заявок — все статусы
+GET {{baseUrl}}/api/bank/applications
+Authorization: Bearer {{employeeToken}}
+
+###
+
+# Очередь — только заявки на ручном рассмотрении
+GET {{baseUrl}}/api/bank/applications?status=MANUAL_REVIEW
+Authorization: Bearer {{employeeToken}}
+
+###
+
+# Очередь — только одобренные
+GET {{baseUrl}}/api/bank/applications?status=APPROVED
+Authorization: Bearer {{employeeToken}}
+
+###
+
+# Карточка заявки с проверками и ML-скорингом
+GET {{baseUrl}}/api/bank/applications/{{applicationId}}
+Authorization: Bearer {{employeeToken}}
+
+###
+
+# Решение сотрудника — одобрить на запрошенных условиях
+POST {{baseUrl}}/api/bank/applications/{{applicationId}}/decision
+Content-Type: application/json
+Authorization: Bearer {{employeeToken}}
+
+{
+  "action": "APPROVE",
+  "version": 3
+}
+
+###
+
+# Решение сотрудника — одобрить на изменённых условиях
+POST {{baseUrl}}/api/bank/applications/{{applicationId}}/decision
+Content-Type: application/json
+Authorization: Bearer {{employeeToken}}
+
+{
+  "action": "APPROVE",
+  "amount": 200000,
+  "rate": 22.0,
+  "version": 3
+}
+
+###
+
+# Решение сотрудника — изменить условия (другая сумма и срок)
+POST {{baseUrl}}/api/bank/applications/{{applicationId}}/decision
+Content-Type: application/json
+Authorization: Bearer {{employeeToken}}
+
+{
+  "action": "CHANGE_TERMS",
+  "amount": 250000,
+  "termMonths": 18,
+  "rate": 21.5,
+  "version": 3
+}
+
+###
+
+# Решение сотрудника — запросить уточнения
+POST {{baseUrl}}/api/bank/applications/{{applicationId}}/decision
+Content-Type: application/json
+Authorization: Bearer {{employeeToken}}
+
+{
+  "action": "REQUEST_INFO",
+  "comment": "Нужна выписка по расчётному счёту за последние 6 месяцев",
+  "version": 3
+}
+
+###
+
+# Решение сотрудника — отказать
+POST {{baseUrl}}/api/bank/applications/{{applicationId}}/decision
+Content-Type: application/json
+Authorization: Bearer {{employeeToken}}
+
+{
+  "action": "REJECT",
+  "comment": "Высокая долговая нагрузка, недостаточный свободный денежный поток",
+  "version": 3
+}
+
+###
+
+### ─────────────────────────────────────────
+### 7. ML-СЕРВИС (прямые запросы, порт 8001)
+### ─────────────────────────────────────────
+
+# Проверить доступность ML-сервиса
+GET {{mlUrl}}/health
+
+###
+
+# Скоринг заявки — хороший профиль (ожидается low risk)
+POST {{mlUrl}}/internal/scoring/predict
+Content-Type: application/json
+
+{
+  "application_id": "TEST-001",
+  "application_date": "2026-10-26",
+  "registration_date": "2020-03-15",
+  "industry": "retail",
+  "product_type": "working_capital",
+  "revenue_6m_rub": 900000,
+  "monthly_mandatory_expenses_rub": 90000,
+  "has_active_loans": false,
+  "existing_monthly_debt_payment_rub": 0,
+  "past_overdue_count": 0,
+  "requested_amount_rub": 180000,
+  "term_months": 12
+}
+
+###
+
+# Скоринг заявки — с просрочками (ожидается high risk, PD > 0.18)
+# past_overdue_count >= 8 стабильно даёт HIGH риск на синтетической модели
+POST {{mlUrl}}/internal/scoring/predict
+Content-Type: application/json
+
+{
+  "application_id": "TEST-002",
+  "application_date": "2026-10-26",
+  "registration_date": "2025-01-01",
+  "industry": "construction",
+  "product_type": "equipment",
+  "revenue_6m_rub": 600000,
+  "monthly_mandatory_expenses_rub": 80000,
+  "has_active_loans": true,
+  "existing_monthly_debt_payment_rub": 25000,
+  "past_overdue_count": 8,
+  "requested_amount_rub": 500000,
+  "term_months": 24
+}
+
+###
+
+# ML + Decision Engine — сквозной запрос
+POST {{mlUrl}}/internal/decision/evaluate
+Content-Type: application/json
+
+{
+  "application": {
+    "application_id": "TEST-003",
+    "application_date": "2026-10-26",
+    "registration_date": "2021-06-01",
+    "industry": "services",
+    "product_type": "working_capital",
+    "revenue_6m_rub": 750000,
+    "monthly_mandatory_expenses_rub": 60000,
+    "has_active_loans": false,
+    "existing_monthly_debt_payment_rub": 0,
+    "past_overdue_count": 0,
+    "requested_amount_rub": 200000,
+    "term_months": 12
+  },
+  "verifications": {
+    "company_status": "active",
+    "representative_authorized": true,
+    "personal_data_consent": true,
+    "credit_history_consent": true,
+    "fns_check": "ok",
+    "bki_check": "ok"
+  }
+}
+
+###
+
+### ─────────────────────────────────────────
+### ПЕРЕМЕННЫЕ — заполните после логина
+### ─────────────────────────────────────────
+### @clientToken   = <token из POST /api/auth/login client1>
+### @employeeToken = <token из POST /api/auth/login employee>
+### @productId     = <id из GET /api/products>
+### @applicationId = <id из POST /api/applications>
+### @offerId       = <offer.id из GET /api/applications/{id}>

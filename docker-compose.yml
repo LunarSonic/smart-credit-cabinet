@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: credit_postgres
+    environment:
+      POSTGRES_DB: credit_cabinet
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d credit_cabinet"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: credit_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/credit_cabinet
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: my-super-secret-key-for-hackathon-32+
+      JWT_TTL_MINUTES: "480"
+      ML_BASE_URL: ${ML_BASE_URL:-http://ml:8000}
+      ML_CONNECT_TIMEOUT_MS: "3000"
+      ML_READ_TIMEOUT_MS: "15000"
+      ML_RETRIES: "2"
+      PIPELINE_RECOVERY_AFTER_SECONDS: "120"
+      PIPELINE_RECOVERY_INTERVAL_MS: "30000"
+      PIPELINE_DISBURSEMENT_DELAY_MS: "5000"
+      OFFER_TTL_DAYS: "3"
+      SEED_ENABLED: "true"
+      SEED_PASSWORD: "Demo1234!"
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://credit_frontend"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health 2>/dev/null | grep -q '\"status\":\"UP\"' || exit 1"]
+      start_period: 90s
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ml:
+    build:
+      context: ./ml_and_decision
+      dockerfile: Dockerfile
+    container_name: credit_ml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/credit_cabinet
+      SCORING_MODEL_DIR: /app/models
+      DECISION_POLICY_PATH: /app/decision/policy.json
+      MODEL_VERSION: "1.0"
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: credit_frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:

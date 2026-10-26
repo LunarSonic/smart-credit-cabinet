@@ -1,0 +1,75 @@
+{
+  "validation": {
+    "catboost": {
+      "rows": 3399,
+      "positive_rate": 0.09385113268608414,
+      "roc_auc": 0.6409976387249114,
+      "pr_auc": 0.146062707221882,
+      "brier": 0.08346983244996094,
+      "log_loss": 0.30224508928065796
+    },
+    "logistic_regression": {
+      "rows": 3399,
+      "positive_rate": 0.09385113268608414,
+      "roc_auc": 0.6363493872898262,
+      "pr_auc": 0.15278816808014792,
+      "brier": 0.08343439079498904,
+      "log_loss": 0.30233633402417776
+    }
+  },
+  "test": {
+    "catboost": {
+      "rows": 3324,
+      "positive_rate": 0.11010830324909747,
+      "roc_auc": 0.6340460435163324,
+      "pr_auc": 0.16952527308693455,
+      "brier": 0.09597677950963464,
+      "log_loss": 0.336456132150668
+    },
+    "logistic_regression": {
+      "rows": 3324,
+      "positive_rate": 0.11010830324909747,
+      "roc_auc": 0.6316962058989791,
+      "pr_auc": 0.17998104078051058,
+      "brier": 0.09578396521260245,
+      "log_loss": 0.3361830215114233
+    },
+    "catboost_calibration_bins": [
+      {
+        "start": 0.0,
+        "end": 0.1,
+        "count": 1770,
+        "mean_predicted_pd": 0.0737128599440249,
+        "default_rate": 0.07457627118644068
+      },
+      {
+        "start": 0.1,
+        "end": 0.2,
+        "count": 1475,
+        "mean_predicted_pd": 0.13405178143844082,
+        "default_rate": 0.14508474576271185
+      },
+      {
+        "start": 0.2,
+        "end": 0.30000000000000004,
+        "count": 73,
+        "mean_predicted_pd": 0.22595635883065443,
+        "default_rate": 0.2602739726027397
+      },
+      {
+        "start": 0.30000000000000004,
+        "end": 0.4,
+        "count": 4,
+        "mean_predicted_pd": 0.33765591115852456,
+        "default_rate": 0.0
+      },
+      {
+        "start": 0.4,
+        "end": 0.5,
+        "count": 2,
+        "mean_predicted_pd": 0.4620700291984996,
+        "default_rate": 0.5
+      }
+    ]
+  }
+}
